@@ -116,6 +116,22 @@ def test_empty_api_results_are_not_cacheable():
     assert _is_cacheable_api_result([{"id": "record"}]) is True
 
 
+def test_literature_preserves_pubmed_query_gene_without_pubtator_annotations():
+    """Retain PubMed query attribution when PubTator cannot annotate a record."""
+    from agents.literature_agent import LiteratureAgent
+    from models.schemas import PubMedArticle
+
+    evidence = LiteratureAgent()._articles_to_evidence(
+        articles=[PubMedArticle(pmid="123", title="Pembrolizumab biomarker study")],
+        article_query_genes={"123": ["PDCD1"]},
+        drug_name="pembrolizumab",
+    )
+
+    assert len(evidence) == 1
+    assert evidence[0].gene == "PDCD1"
+    assert evidence[0].source_id == "PMID:123"
+
+
 def test_orchestrator_fails_closed_and_skips_llm():
     """Return no hypotheses and clear metadata when every retrieval stage is empty."""
     import agents.orchestrator as module

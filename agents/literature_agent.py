@@ -58,10 +58,13 @@ class LiteratureAgent:
         # Flatten all articles
         all_articles: list[PubMedArticle] = []
         gene_article_counts: dict[str, int] = {}
+        article_query_genes: dict[str, list[str]] = {}
 
         for gene, articles in gene_articles_map.items():
             gene_article_counts[gene] = len(articles)
             all_articles.extend(articles)
+            for article in articles:
+                article_query_genes.setdefault(article.pmid, []).append(gene)
 
         # Deduplicate by PMID
         seen_pmids: set[str] = set()
@@ -81,7 +84,11 @@ class LiteratureAgent:
             enriched_articles = unique_articles
 
         # Convert to NormalizedEvidence
-        evidence_items = self._articles_to_evidence(enriched_articles, gene_article_counts, drug_name)
+        evidence_items = self._articles_to_evidence(
+            enriched_articles,
+            article_query_genes,
+            drug_name,
+        )
 
         logger.info(
             "[LiteratureAgent] Generated %d evidence items from %d articles",
@@ -93,45 +100,51 @@ class LiteratureAgent:
     def _articles_to_evidence(
         self,
         articles: list[PubMedArticle],
-        gene_article_counts: dict[str, int],
+        article_query_genes: dict[str, list[str]],
         drug_name: str,
     ) -> list[NormalizedEvidence]:
         """
         Convert PubMedArticle objects to NormalizedEvidence.
-        One evidence item per article; links to genes mentioned.
+
+        The PubMed query already links each article to a candidate gene. Preserve
+        that association when PubTator has no annotations instead of emitting an
+        unlinked record that the evidence gate cannot evaluate.
         """
         evidence_items: list[NormalizedEvidence] = []
 
         for article in articles:
+            query_genes = list(dict.fromkeys(article_query_genes.get(article.pmid, [])))
             genes = article.genes_mentioned[:5] if article.genes_mentioned else []
+            attributed_genes = query_genes or genes[:1]
             mutations = article.mutations_mentioned[:3]
 
-            primary_gene = genes[0] if genes else None
             variant = mutations[0] if mutations else None
 
             claim = article.title or f"PMID:{article.pmid}"
             if article.abstract:
                 claim = f"{claim}. {article.abstract[:200]}..."
 
-            evidence_items.append(
-                NormalizedEvidence(
-                    source="PubMed",
-                    source_id=f"PMID:{article.pmid}",
-                    gene=primary_gene,
-                    variant=variant,
-                    drug=drug_name,
-                    evidence_type=EvidenceType.PREDICTIVE,
-                    evidence_direction=EvidenceDirection.SUPPORTS,
-                    claim=claim[:500],
-                    strength=0.1,
-                    raw_data={
-                        "pmid": article.pmid,
-                        "title": article.title,
-                        "genes": genes,
-                        "mutations": mutations,
-                        "diseases": article.diseases_mentioned[:3],
-                    },
+            for gene in attributed_genes:
+                evidence_items.append(
+                    NormalizedEvidence(
+                        source="PubMed",
+                        source_id=f"PMID:{article.pmid}",
+                        gene=gene,
+                        variant=variant,
+                        drug=drug_name,
+                        evidence_type=EvidenceType.PREDICTIVE,
+                        evidence_direction=EvidenceDirection.SUPPORTS,
+                        claim=claim[:500],
+                        strength=0.1,
+                        raw_data={
+                            "pmid": article.pmid,
+                            "title": article.title,
+                            "query_genes": query_genes,
+                            "genes": genes,
+                            "mutations": mutations,
+                            "diseases": article.diseases_mentioned[:3],
+                        },
+                    )
                 )
-            )
 
         return evidence_items
