@@ -1,0 +1,43 @@
+# OncoMOA Biomarker Agent — Dependencies
+# Run: pip install -r requirements.txt
+
+# Async HTTP
+aiohttp>=3.9.0
+aiofiles>=23.2.1
+
+# Pydantic v2 schema validation
+pydantic>=2.6.0
+
+# Knowledge graph
+networkx>=3.2.1
+
+# Persistent caching (SQLite-backed)
+diskcache>=5.6.3
+
+# LLM backends
+google-genai>=1.0.0
+
+# CLI & display
+rich>=13.7.0
+click>=8.1.7
+
+# Data processing
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Retry logic
+tenacity>=8.2.3
+
+# Environment variable loading
+python-dotenv>=1.0.1
+
+# GraphML export (lxml speeds up parsing)
+lxml>=5.1.0
+
+# Sync HTTP for fallbacks
+requests>=2.31.0
+
+# Testing
+pytest>=8.1.0
+pytest-asyncio>=0.23.5
+pytest-cov>=4.1.0
