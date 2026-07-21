@@ -42,12 +42,12 @@ Think of OncoMOA as a structured literature-and-database review that follows a
 common translational workflow:
 
 ```mermaid
-flowchart LR
-    input[DrugAndMechanism] --> target[IdentifyDrugTargets]
-    target --> biology[FindRelatedBiology]
-    biology --> evidence[CollectDatabasePapersTrials]
-    evidence --> rank[ScoreEvidence]
-    rank --> review[BiomarkerReviewOutput]
+flowchart TD
+    DrugInput["Drug and mechanism"] --> DrugTarget["Identify drug target"]
+    DrugTarget --> Biology["Find related biology"]
+    Biology --> Evidence["Collect databases, papers, and trials"]
+    Evidence --> Ranking["Score the evidence"]
+    Ranking --> Review["Biomarker review output"]
 ```
 
 1. **Identify the drug target.** For example, pembrolizumab is linked to PDCD1.
